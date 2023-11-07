@@ -2,11 +2,13 @@ package com.sai.mongostore.controllers;
 
 import com.sai.commons.exception.NotFoundException;
 import com.sai.commons.objects.AEventDetails;
+import com.sai.commons.objects.AEventList;
 import com.sai.mongostore.controllers.aop.RestLog;
 import com.sai.mongostore.model.EventDetails;
 import com.sai.mongostore.repository.EventDetailRepository;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -14,6 +16,7 @@ import org.springframework.util.ObjectUtils;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @RestController
@@ -51,10 +54,30 @@ public class EventController {
 
     @GetMapping(value = "/search")
     @RestLog(uri = "/api/event/search")
-    public ResponseEntity<List<EventDetails>> search(@RequestParam("searchkey") String name){
-        List<EventDetails> ed = eventDetailRepository.findAllByName(name);
+    public ResponseEntity<AEventList> search(@RequestParam("searchkey") String name){
+        List<EventDetails> ed = new ArrayList<>();
+        PageRequest page = PageRequest.of(0,100);
+        if(name.equals("*")){
+            ed = eventDetailRepository.findAll(page).toList();
 
-        return new ResponseEntity<List<EventDetails>>(ed, HttpStatus.OK);
+        } else {
+            ed = eventDetailRepository.findAllByName(name);
+
+        }
+        AEventList list = new AEventList(convertEvent(ed));
+
+        return new ResponseEntity<AEventList>(list, HttpStatus.OK);
+    }
+
+    private List<AEventDetails> convertEvent(List<EventDetails> eventDetails){
+        List<AEventDetails> retVal = new ArrayList<>();
+        eventDetails.stream().forEach(a -> {
+            AEventDetails aed = new AEventDetails();
+            BeanUtils.copyProperties(a, aed);
+            retVal.add(aed);
+                }
+        );
+        return retVal;
     }
 
 }
