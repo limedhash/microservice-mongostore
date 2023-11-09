@@ -2,7 +2,7 @@ package com.sai.mongostore.controllers;
 
 import com.sai.commons.exception.NotFoundException;
 import com.sai.commons.exception.UnexpectedErrorException;
-import com.sai.commons.response.ErrorResponse;
+import com.sai.commons.payload.ErrorResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ExceptionHandler;

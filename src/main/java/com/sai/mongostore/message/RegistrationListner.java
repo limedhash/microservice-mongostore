@@ -3,11 +3,16 @@ package com.sai.mongostore.message;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.sai.commons.payload.EmailMessage;
+import com.sai.mongostore.MongoStoreConfig;
 import com.sai.mongostore.model.EventDetails;
 import com.sai.mongostore.model.RegistrationDetails;
 import com.sai.mongostore.repository.EventDetailRepository;
 import com.sai.mongostore.repository.RegistrationDetailsRepository;
+import jakarta.validation.constraints.Email;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.ProducerRecord;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Repository;
@@ -23,6 +28,11 @@ public class RegistrationListner {
     EventDetailRepository eventDetailRepository;
     @Autowired
     ObjectMapper objectMapper;
+    @Autowired
+    KafkaProducer<String, String> producer;
+
+    @Autowired
+    MongoStoreConfig config;
 
     @KafkaListener(topics = "register")
     public void register(String message){
@@ -30,6 +40,15 @@ public class RegistrationListner {
             RegistrationDetails details = objectMapper.readValue(message, RegistrationDetails.class);
             if(isValid(details)){
                 registrationDetailsRepository.save(details);
+
+                EmailMessage emailMessage = new EmailMessage();
+                emailMessage.setFrom(config.getFromEmail());
+                emailMessage.setTo(details.getEmail());
+                String payload = objectMapper.writeValueAsString(emailMessage);
+                ProducerRecord<String, String> producerRecord =
+                        new ProducerRecord<>(config.getEmailTopic(), payload);
+
+                producer.send(producerRecord);
             } else {
                log.error("Registration Is Invalid");
             }
